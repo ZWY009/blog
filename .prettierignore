@@ -1,0 +1,10 @@
+node_modules/
+dist/
+build/
+coverage/
+reports/
+.lighthouseci/
+test-results/
+playwright-report/
+.deploy/
+pnpm-lock.yaml

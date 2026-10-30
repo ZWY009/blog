@@ -1,0 +1,103 @@
+@import 'tailwindcss';
+
+/* ==========================================================================
+ * 纸上 · 个人博客
+ * --------------------------------------------------------------------------
+ * 设计取向：编辑排版（editorial），不是后台面板。
+ *   - 暖白纸底 + 近黑墨字 + 绛棕强调，不用冷灰蓝
+ *   - 标题走衬线，正文走衬线，UI 元素才用无衬线
+ *   - 分隔靠细线和大留白，几乎不用阴影和圆角
+ *
+ * token 集中在这里。生产项目建议像 examples/demo-web 那样走
+ * Style Dictionary（tokens/*.json → 编译产物），这里为保持示例轻量直接内联。
+ * ========================================================================== */
+
+:root {
+  color-scheme: light;
+
+  /* 纸与墨 */
+  --paper: #fbfaf8;
+  --paper-2: #f5f2ed;
+  --ink: #1c1b19;
+  --ink-2: #57534e;
+  --ink-3: #a8a29e;
+  --rule: #e7e2dc;
+  --rule-strong: #d6cfc6;
+
+  /* 强调：绛棕，克制的暖色，不用蓝 */
+  --accent: #8b5e34;
+  --accent-ink: #6f4a28;
+  --accent-soft: #f3ede6;
+
+  /* 字体：标题与正文都用衬线，UI 用无衬线 */
+  --serif: 'Source Han Serif SC', 'Noto Serif SC', 'Songti SC', 'SimSun', Georgia, serif;
+  --sans: system-ui, -apple-system, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  --mono: ui-monospace, SFMono-Regular, 'JetBrains Mono', Consolas, monospace;
+}
+
+@theme inline {
+  --color-paper: var(--paper);
+  --color-paper-2: var(--paper-2);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-rule: var(--rule);
+  --color-accent: var(--accent);
+  --color-accent-ink: var(--accent-ink);
+  --color-accent-soft: var(--accent-soft);
+  --font-serif: var(--serif);
+  --font-sans: var(--sans);
+  --font-mono: var(--mono);
+}
+
+@layer base {
+  html {
+    color-scheme: light;
+    /* 中文小字号在 Windows 上发虚，关掉次像素渲染反而更清楚 */
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizelegibility;
+  }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--sans);
+    line-height: 1.6;
+  }
+
+  /* 正文用衬线 + 大行高：长文可读性优先 */
+  .prose {
+    font-family: var(--serif);
+    font-size: 17px;
+    line-height: 1.9;
+    color: var(--ink);
+  }
+
+  .prose p {
+    margin: 0 0 1.5em;
+  }
+
+  .prose h2 {
+    font-family: var(--serif);
+    font-size: 21px;
+    font-weight: 600;
+    line-height: 1.5;
+    margin: 2.2em 0 0.8em;
+    color: var(--ink);
+  }
+
+  .prose blockquote {
+    margin: 2em 0;
+    padding-left: 1.2em;
+    border-left: 2px solid var(--accent);
+    color: var(--ink-2);
+    font-style: italic;
+  }
+
+  ::selection {
+    background: var(--accent-soft);
+    color: var(--accent-ink);
+  }
+}

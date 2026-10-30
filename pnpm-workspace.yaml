@@ -1,0 +1,5 @@
+# pnpm 12 默认阻止依赖执行构建脚本，需要显式批准。
+# esbuild 的平台二进制来自可选依赖包（@esbuild/win32-x64 等），
+# 它的 postinstall 只做校验和兜底下载，这里关掉更确定、也不需要联网。
+allowBuilds:
+  esbuild: false

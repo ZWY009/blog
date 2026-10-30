@@ -1,50 +1,67 @@
 @import 'tailwindcss';
 
 /* ==========================================================================
- * 纸上 · 个人博客
+ * 秋蝉源 · 个人博客
  * --------------------------------------------------------------------------
  * 设计取向：编辑排版（editorial），不是后台面板。
  *   - 暖白纸底 + 近黑墨字 + 绛棕强调，不用冷灰蓝
- *   - 标题走衬线，正文走衬线，UI 元素才用无衬线
+ *   - 标题正文走衬线，标签/日期/导航等 UI 元素走无衬线
  *   - 分隔靠细线和大留白，几乎不用阴影和圆角
- *
- * token 集中在这里。生产项目建议像 examples/demo-web 那样走
- * Style Dictionary（tokens/*.json → 编译产物），这里为保持示例轻量直接内联。
+ *   - 暗色模式跟随系统，不设开关（博客不需要多一个需要记的状态）
  * ========================================================================== */
 
 :root {
-  color-scheme: light;
+  color-scheme: light dark;
 
   /* 纸与墨 */
   --paper: #fbfaf8;
-  --paper-2: #f5f2ed;
   --ink: #1c1b19;
   --ink-2: #57534e;
   --ink-3: #a8a29e;
   --rule: #e7e2dc;
   --rule-strong: #d6cfc6;
 
-  /* 强调：绛棕，克制的暖色，不用蓝 */
+  /* 强调：绛棕，克制的暖色 */
   --accent: #8b5e34;
   --accent-ink: #6f4a28;
   --accent-soft: #f3ede6;
 
-  /* 字体：标题与正文都用衬线，UI 用无衬线 */
-  --serif: 'Source Han Serif SC', 'Noto Serif SC', 'Songti SC', 'SimSun', Georgia, serif;
+  /* 代码块 */
+  --code-bg: #f7f5f2;
+  --code-border: #eae5de;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --paper: #14120f;
+    --ink: #e8e4dc;
+    --ink-2: #a8a29a;
+    --ink-3: #6f6a62;
+    --rule: #2a2620;
+    --rule-strong: #3a352d;
+    --accent: #c79a6b;
+    --accent-ink: #d8b48c;
+    --accent-soft: #241d14;
+    --code-bg: #1b1916;
+    --code-border: #2a2620;
+  }
+}
+
+/* 字体：标题与正文都用衬线，UI 用无衬线 */
+:root {
+  --serif: 'Source Han Serif SC', 'Noto Serif SC', 'Songti SC', SimSun, Georgia, serif;
   --sans: system-ui, -apple-system, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
-  --mono: ui-monospace, SFMono-Regular, 'JetBrains Mono', Consolas, monospace;
+  --mono: ui-monospace, SFMono-Regular, 'JetBrains Mono', 'Cascadia Code', Consolas, monospace;
 }
 
 @theme inline {
   --color-paper: var(--paper);
-  --color-paper-2: var(--paper-2);
   --color-ink: var(--ink);
   --color-ink-2: var(--ink-2);
   --color-ink-3: var(--ink-3);
   --color-rule: var(--rule);
   --color-accent: var(--accent);
   --color-accent-ink: var(--accent-ink);
-  --color-accent-soft: var(--accent-soft);
   --font-serif: var(--serif);
   --font-sans: var(--sans);
   --font-mono: var(--mono);
@@ -52,10 +69,9 @@
 
 @layer base {
   html {
-    color-scheme: light;
-    /* 中文小字号在 Windows 上发虚，关掉次像素渲染反而更清楚 */
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizelegibility;
+    scroll-behavior: smooth;
   }
 
   body {
@@ -67,7 +83,18 @@
     line-height: 1.6;
   }
 
-  /* 正文用衬线 + 大行高：长文可读性优先 */
+  ::selection {
+    background: var(--accent-soft);
+    color: var(--accent-ink);
+  }
+
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  /* ---------------------------------------------------------------- 正文 */
+  /* 长文可读性优先：衬线 + 17px + 行高 1.9 */
   .prose {
     font-family: var(--serif);
     font-size: 17px;
@@ -85,7 +112,12 @@
     font-weight: 600;
     line-height: 1.5;
     margin: 2.2em 0 0.8em;
-    color: var(--ink);
+  }
+
+  .prose h3 {
+    font-size: 18px;
+    font-weight: 600;
+    margin: 1.8em 0 0.6em;
   }
 
   .prose blockquote {
@@ -96,8 +128,89 @@
     font-style: italic;
   }
 
-  ::selection {
-    background: var(--accent-soft);
+  .prose ul,
+  .prose ol {
+    margin: 0 0 1.5em;
+    padding-left: 1.4em;
+  }
+
+  .prose li {
+    margin: 0.4em 0;
+  }
+
+  .prose li::marker {
+    color: var(--ink-3);
+  }
+
+  .prose a {
     color: var(--accent-ink);
+    text-decoration: underline;
+    text-decoration-color: var(--rule-strong);
+    text-underline-offset: 3px;
+  }
+
+  .prose a:hover {
+    text-decoration-color: var(--accent);
+  }
+
+  .prose strong {
+    font-weight: 600;
+  }
+
+  .prose hr {
+    border: 0;
+    border-top: 1px solid var(--rule);
+    margin: 2.5em 0;
+  }
+
+  /* 行内代码 */
+  .prose :not(pre) > code {
+    font-family: var(--mono);
+    font-size: 0.88em;
+    background: var(--code-bg);
+    border: 1px solid var(--code-border);
+    border-radius: 4px;
+    padding: 0.1em 0.35em;
+  }
+
+  /* 代码块 */
+  .prose pre {
+    margin: 1.8em 0;
+    padding: 1.1em 1.2em;
+    border: 1px solid var(--code-border);
+    border-radius: 6px;
+    overflow-x: auto;
+    font-size: 13.5px;
+    line-height: 1.7;
+  }
+
+  .prose pre code {
+    font-family: var(--mono);
+    background: none;
+    border: 0;
+    padding: 0;
+    /* 关掉连字：Cascadia Code 之类会把 => 显示成 ⇒，读代码时容易误判 */
+    font-variant-ligatures: none;
+  }
+
+  /* ---------------------------------------------------- shiki 双主题 */
+  /* shiki 以 --shiki-light / --shiki-dark 两个变量输出颜色（defaultColor: false），
+   * 这里按系统偏好二选一。不要写 !important —— 正常层叠就能生效。 */
+  .shiki {
+    background-color: var(--shiki-light-bg, var(--code-bg)) !important;
+  }
+
+  .shiki span {
+    color: var(--shiki-light);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    .shiki {
+      background-color: var(--shiki-dark-bg, var(--code-bg)) !important;
+    }
+
+    .shiki span {
+      color: var(--shiki-dark);
+    }
   }
 }

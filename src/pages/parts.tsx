@@ -1,16 +1,16 @@
-import { site } from '../site.config';
+import { link, site } from '../site.config';
 
 const NAV = [
-  { key: 'projects', href: '/projects/', label: '项目' },
-  { key: 'writing', href: '/writing/', label: '文章' },
-  { key: 'about', href: '/about/', label: '关于' },
+  { key: 'projects', href: link('/projects/'), label: '项目' },
+  { key: 'writing', href: link('/writing/'), label: '文章' },
+  { key: 'about', href: link('/about/'), label: '关于' },
 ] as const;
 
 /** 站头导航：左边站名，右边「项目 / 文章 / 关于」 */
 export function SiteNav({ current }: { current?: 'projects' | 'writing' | 'about' }) {
   return (
     <nav className="flex flex-wrap items-baseline justify-between gap-4 border-b border-rule py-6">
-      <a href="/" className="font-serif text-lg font-semibold tracking-tight text-ink">
+      <a href={link('/')} className="font-serif text-lg font-semibold tracking-tight text-ink">
         {site.name}
       </a>
       <ul className="flex items-center gap-6 font-sans text-[13px]">
@@ -48,7 +48,7 @@ export function SiteFooter() {
         <a href={site.github} className="hover:text-accent-ink">
           GitHub
         </a>
-        <a href="/rss.xml" className="hover:text-accent-ink">
+        <a href={link('/rss.xml')} className="hover:text-accent-ink">
           RSS
         </a>
       </p>

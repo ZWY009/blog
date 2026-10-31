@@ -55,3 +55,14 @@ export const site: {
  * CI 里由 BLOG_BASE_PATH 注入。
  */
 export const basePath = env.BLOG_BASE_PATH ?? '';
+
+/**
+ * 站内链接必须用它，不要在组件里手写 '/xxx/'。
+ *
+ * 部署在子路径下时（GitHub Pages 项目页 = /blog），手写的 '/projects/' 会被解析成
+ * 站点根目录下的 /projects/，而实际地址是 /blog/projects/ —— 点一下就 404。
+ * 这个坑只有真的点一遍线上站才会发现：构建绿、部署绿、页面 200，但导航全是坏的。
+ */
+export function link(p: string): string {
+  return `${basePath}${p}`.replace(/\/{2,}/g, '/');
+}

@@ -1,3 +1,4 @@
+import { link } from '../site.config';
 import type { Project } from '../lib/posts';
 import { SiteFooter, SiteNav, StackChips } from './parts';
 
@@ -14,7 +15,7 @@ export function ProjectPage({ project }: Props) {
       <main>
         <article className="py-12">
           <a
-            href="/projects/"
+            href={link('/projects/')}
             className="mb-8 inline-block font-sans text-[13px] text-ink-3 hover:text-accent-ink"
           >
             ← 全部项目

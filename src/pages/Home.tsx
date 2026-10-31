@@ -1,6 +1,6 @@
 import type { PostMeta, ProjectMeta } from '../lib/posts';
 import { formatMonthDay } from '../lib/posts';
-import { site } from '../site.config';
+import { link, site } from '../site.config';
 import { SiteFooter, SiteNav, StackChips } from './parts';
 
 type Props = { projects: ProjectMeta[]; posts: PostMeta[] };
@@ -27,7 +27,7 @@ export function Home({ projects, posts }: Props) {
         </p>
         <p className="mt-6 flex flex-wrap gap-x-5 gap-y-1 font-sans text-[13px]">
           <a
-            href="/projects/"
+            href={link('/projects/')}
             className="text-accent-ink underline decoration-rule-strong underline-offset-4 hover:decoration-accent"
           >
             看项目 →
@@ -58,7 +58,7 @@ export function Home({ projects, posts }: Props) {
           {projects.map((p, index) => (
             <li key={p.slug}>
               <a
-                href={`/projects/${p.slug}/`}
+                href={link(`/projects/${p.slug}/`)}
                 className="group grid gap-2 sm:grid-cols-[3rem_1fr] sm:gap-5"
               >
                 <span className="pt-1.5 font-sans text-[11px] tabular-nums text-ink-3">
@@ -92,7 +92,7 @@ export function Home({ projects, posts }: Props) {
           {posts.slice(0, 3).map((post) => (
             <li key={post.slug}>
               <a
-                href={`/post/${post.slug}/`}
+                href={link(`/post/${post.slug}/`)}
                 className="group flex flex-wrap items-baseline gap-x-4 gap-y-1"
               >
                 <span className="font-sans text-[12px] tabular-nums text-ink-3">
@@ -107,7 +107,7 @@ export function Home({ projects, posts }: Props) {
         </ul>
         <p className="mt-5 font-sans text-[13px]">
           <a
-            href="/writing/"
+            href={link('/writing/')}
             className="text-accent-ink underline decoration-rule-strong underline-offset-4"
           >
             全部文章 →

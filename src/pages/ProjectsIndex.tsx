@@ -1,3 +1,4 @@
+import { link } from '../site.config';
 import type { ProjectMeta } from '../lib/posts';
 import { SiteFooter, SiteNav, StackChips } from './parts';
 
@@ -20,7 +21,7 @@ export function ProjectsIndex({ projects }: Props) {
         <ul className="divide-y divide-rule">
           {projects.map((p) => (
             <li key={p.slug} className="py-8">
-              <a href={`/projects/${p.slug}/`} className="group block">
+              <a href={link(`/projects/${p.slug}/`)} className="group block">
                 <span className="flex flex-wrap items-baseline gap-x-4 gap-y-1 font-sans text-[12px] text-ink-3">
                   <span className="tabular-nums">{p.period}</span>
                   <span>{p.role}</span>

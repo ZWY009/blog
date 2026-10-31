@@ -1,3 +1,4 @@
+import { link } from '../site.config';
 import { formatDate, type Post } from '../lib/posts';
 import { SiteFooter, SiteNav } from './parts';
 
@@ -11,7 +12,7 @@ export function PostPage({ post }: Props) {
       <main>
         <article className="py-12">
           <a
-            href="/writing/"
+            href={link('/writing/')}
             className="mb-8 inline-block font-sans text-[13px] text-ink-3 hover:text-accent-ink"
           >
             ← 返回文章列表
@@ -37,7 +38,10 @@ export function PostPage({ post }: Props) {
 
           <footer className="mt-14 border-t border-rule pt-8 font-sans text-[13px] text-ink-3">
             写于 {formatDate(post.date)} ·{' '}
-            <a href="/writing/" className="text-accent-ink underline decoration-rule-strong">
+            <a
+              href={link('/writing/')}
+              className="text-accent-ink underline decoration-rule-strong"
+            >
               回到全部文章
             </a>
           </footer>
@@ -59,10 +63,10 @@ export function NotFound() {
           链接可能失效了，或者这个页面还没写。
         </p>
         <p className="mt-6 flex gap-5 font-sans text-[13px]">
-          <a href="/" className="text-accent-ink underline">
+          <a href={link('/')} className="text-accent-ink underline">
             回到首页
           </a>
-          <a href="/projects/" className="text-accent-ink underline">
+          <a href={link('/projects/')} className="text-accent-ink underline">
             看项目
           </a>
         </p>

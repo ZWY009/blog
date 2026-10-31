@@ -1,5 +1,5 @@
 import type { ProjectMeta } from '../lib/posts';
-import { site } from '../site.config';
+import { link, site } from '../site.config';
 import { SiteFooter, SiteNav, StackChips } from './parts';
 
 type Props = { projects: ProjectMeta[] };
@@ -71,7 +71,7 @@ export function About({ projects }: Props) {
           {timeline.map((p) => (
             <li key={p.slug} className="py-4">
               <a
-                href={`/projects/${p.slug}/`}
+                href={link(`/projects/${p.slug}/`)}
                 className="group grid gap-1 sm:grid-cols-[8rem_1fr] sm:gap-5"
               >
                 <span className="font-sans text-[12px] tabular-nums text-ink-3">{p.period}</span>

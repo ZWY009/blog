@@ -1,3 +1,4 @@
+import { link } from '../site.config';
 import { formatMonthDay, yearOf, type PostMeta } from '../lib/posts';
 import { SiteFooter, SiteNav } from './parts';
 
@@ -33,7 +34,7 @@ export function WritingIndex({ posts }: Props) {
                 .map((post) => (
                   <li key={post.slug}>
                     <a
-                      href={`/post/${post.slug}/`}
+                      href={link(`/post/${post.slug}/`)}
                       className="group grid gap-1 sm:grid-cols-[7.5rem_1fr] sm:gap-6"
                     >
                       <span className="pt-1 font-sans text-[13px] tabular-nums text-ink-3">

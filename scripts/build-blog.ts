@@ -1,16 +1,16 @@
 /**
- * 静态生成器：把 content/posts/*.md 变成 dist 下的纯静态 HTML。
+ * 静态生成器：把 content/posts/*.md 和 content/projects/*.md 变成 dist 下的纯静态 HTML。
  * ---------------------------------------------------------------------------
  * 为什么不用 SPA：
- *   - 每篇文章要有自己的 URL 和自己的 HTML，这样搜索引引擎能索引、分享能被爬、
- *     禁用 JS 也能读。个人博客最重要的资产就是「内容能被找到」。
+ *   - 每篇文章、每个项目都要有自己的 URL 和自己的 HTML，这样搜索引擎能索引、
+ *     分享能被爬、禁用 JS 也能读。个人站最重要的资产就是「内容能被找到」。
  *   - 站点跑在 GitHub Pages 上，没有 Node 服务端，静态文件是最省事的形态。
  *
  * 流程：
  *   1. vite build 先产出带 hash 的 CSS（本脚本之后运行）
- *   2. 读 content/posts/*.md → 解析 frontmatter → marked 渲染 → shiki 高亮代码
+ *   2. 读 markdown → frontmatter → marked 渲染 → shiki 高亮代码
  *   3. 用 renderToStaticMarkup 渲染 React 页面 → 拼完整 HTML 文档
- *   4. 写 index.html / post/<slug>/index.html / 404.html / rss.xml / sitemap.xml
+ *   4. 写各页 index.html / 404.html / rss.xml / sitemap.xml / robots.txt
  */
 import fs from 'node:fs/promises';
 import path from 'node:path';
@@ -20,13 +20,18 @@ import matter from 'gray-matter';
 import { Marked } from 'marked';
 import { createHighlighter } from 'shiki';
 
+import { About } from '../src/pages/About';
 import { Home } from '../src/pages/Home';
 import { NotFound, PostPage } from '../src/pages/PostPage';
+import { ProjectPage } from '../src/pages/ProjectPage';
+import { ProjectsIndex } from '../src/pages/ProjectsIndex';
+import { WritingIndex } from '../src/pages/WritingIndex';
 import { site, basePath } from '../src/site.config';
-import type { Post, PostMeta } from '../src/lib/posts';
+import type { Post, PostMeta, Project, ProjectMeta } from '../src/lib/posts';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const postsDir = path.join(root, 'content', 'posts');
+const projectsDir = path.join(root, 'content', 'projects');
 const distDir = path.join(root, 'dist');
 
 /* ------------------------------------------------------------------ 工具 */
@@ -59,11 +64,10 @@ function readingMinutes(text: string): number {
 
 const LANGS = ['ts', 'tsx', 'js', 'jsx', 'css', 'html', 'bash', 'json', 'diff', 'text'] as const;
 
+type Highlighter = Awaited<ReturnType<typeof createHighlighter>>;
+
 /** marked 产出 <pre><code class="language-x">，这里把每块换成 shiki 的高亮结果 */
-function highlightBlocks(
-  html: string,
-  highlighter: Awaited<ReturnType<typeof createHighlighter>>,
-): string {
+function highlightBlocks(html: string, highlighter: Highlighter): string {
   return html.replace(
     /<pre><code class="language-([\w-]+)">([\s\S]*?)<\/code><\/pre>/g,
     (_match, lang: string, raw: string) => {
@@ -92,11 +96,24 @@ function highlightBlocks(
   );
 }
 
-/* ------------------------------------------------------------- 读文章 */
+/* ------------------------------------------------------------- 读内容 */
 
-async function loadPosts(
-  highlighter: Awaited<ReturnType<typeof createHighlighter>>,
-): Promise<Post[]> {
+/**
+ * 注意：YAML 会把不带引号的 2026-10-20 解析成 Date 对象，不是字符串。
+ * 只判断 typeof === 'string' 会让所有日期悄悄回落到 1970-01-01 —— 这是实际踩过的坑。
+ */
+function asDate(value: unknown, file: string): string {
+  if (value instanceof Date) return value.toISOString().slice(0, 10);
+  if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
+  throw new Error(`${file} 的 date 字段缺失或格式不对（要 YYYY-MM-DD，建议加引号）`);
+}
+
+const asString = (value: unknown, fallback = ''): string =>
+  typeof value === 'string' ? value : fallback;
+
+const asStringArray = (value: unknown): string[] => (Array.isArray(value) ? value.map(String) : []);
+
+async function loadPosts(highlighter: Highlighter): Promise<Post[]> {
   const files = (await fs.readdir(postsDir)).filter((f) => f.endsWith('.md')).sort();
   const marked = new Marked({ gfm: true, breaks: false });
   const posts: Post[] = [];
@@ -104,38 +121,53 @@ async function loadPosts(
   for (const file of files) {
     const raw = await fs.readFile(path.join(postsDir, file), 'utf8');
     const { data, content } = matter(raw);
-
-    if (data.draft === true) continue; // frontmatter 里 draft: true 的文章不上线
-
-    const slug = path.basename(file, '.md');
-    const title = typeof data.title === 'string' ? data.title : slug;
-    /* 注意：YAML 会把不带引号的 2026-10-20 解析成 Date 对象，不是字符串。
-     * 只判断 typeof === 'string' 会让所有日期悄悄回落到 1970-01-01 —— 这是实际踩过的坑。 */
-    const date =
-      data.date instanceof Date
-        ? data.date.toISOString().slice(0, 10)
-        : typeof data.date === 'string'
-          ? data.date
-          : '';
-    const summary = typeof data.summary === 'string' ? data.summary : '';
-    const tags = Array.isArray(data.tags) ? data.tags.map(String) : [];
-
-    if (!date) throw new Error(`${file} 缺少 frontmatter 的 date 字段`);
-
-    const html = highlightBlocks(String(marked.parse(content)), highlighter);
+    if (data.draft === true) continue;
 
     posts.push({
-      slug,
-      title,
-      date,
-      summary,
-      tags,
+      slug: path.basename(file, '.md'),
+      title: asString(data.title, path.basename(file, '.md')),
+      date: asDate(data.date, file),
+      summary: asString(data.summary),
+      tags: asStringArray(data.tags),
       readingMinutes: readingMinutes(content),
-      html,
+      html: highlightBlocks(String(marked.parse(content)), highlighter),
     });
   }
 
   return posts.sort((a, b) => b.date.localeCompare(a.date));
+}
+
+async function loadProjects(highlighter: Highlighter): Promise<Project[]> {
+  const files = (await fs.readdir(projectsDir)).filter((f) => f.endsWith('.md')).sort();
+  const marked = new Marked({ gfm: true, breaks: false });
+  const projects: Project[] = [];
+
+  for (const file of files) {
+    const raw = await fs.readFile(path.join(projectsDir, file), 'utf8');
+    const { data, content } = matter(raw);
+    if (data.draft === true) continue;
+
+    const rawLinks = (data.links ?? {}) as Record<string, unknown>;
+
+    projects.push({
+      slug: path.basename(file, '.md'),
+      title: asString(data.title, path.basename(file, '.md')),
+      tagline: asString(data.tagline),
+      period: asString(data.period),
+      role: asString(data.role),
+      stack: asStringArray(data.stack),
+      order: typeof data.order === 'number' ? data.order : 99,
+      highlight: asString(data.highlight),
+      highlights: asStringArray(data.highlights),
+      links: {
+        repo: typeof rawLinks.repo === 'string' ? rawLinks.repo : undefined,
+        demo: typeof rawLinks.demo === 'string' ? rawLinks.demo : undefined,
+      },
+      html: highlightBlocks(String(marked.parse(content)), highlighter),
+    });
+  }
+
+  return projects.sort((a, b) => a.order - b.order);
 }
 
 /* --------------------------------------------------------- HTML 文档壳 */
@@ -191,14 +223,15 @@ async function main() {
   const cssFile = assets.find((f) => f.endsWith('.css')) ?? '';
   if (!cssFile) throw new Error('dist/assets 里没有 CSS 产物，样式不会生效');
 
-  // 2. 解析文章
+  // 2. 解析 markdown
   const highlighter = await createHighlighter({
     themes: ['github-light', 'github-dark'],
     langs: [...LANGS],
   });
   const posts = await loadPosts(highlighter);
-  // 列表页只要元信息，正文 HTML 剔除掉，避免把整站内容塞进首页
-  const metas: PostMeta[] = posts.map((p) => ({
+  const projects = await loadProjects(highlighter);
+
+  const postMetas: PostMeta[] = posts.map((p) => ({
     slug: p.slug,
     title: p.title,
     date: p.date,
@@ -206,29 +239,72 @@ async function main() {
     tags: p.tags,
     readingMinutes: p.readingMinutes,
   }));
+  const projectMetas: ProjectMeta[] = projects.map((p) => ({
+    slug: p.slug,
+    title: p.title,
+    tagline: p.tagline,
+    period: p.period,
+    role: p.role,
+    stack: p.stack,
+    order: p.order,
+    highlight: p.highlight,
+    highlights: p.highlights,
+    links: p.links,
+  }));
 
   const cssHref = withBase(`/assets/${cssFile}`);
   const written: string[] = [];
 
-  // 3. 首页
-  await fs.writeFile(
-    path.join(distDir, 'index.html'),
-    documentFor({
-      title: site.name,
-      description: site.description,
-      canonical: absoluteUrl('/'),
-      cssHref,
-      bodyHtml: renderToStaticMarkup(Home({ posts: metas })),
-      ogType: 'website',
-    }),
-    'utf8',
-  );
-  written.push('index.html');
+  /** 写一个页面：dir 是相对 dist 的目录（'' 表示根） */
+  const writePage = async (dir: string, opts: Parameters<typeof documentFor>[0]): Promise<void> => {
+    const target = path.join(distDir, dir);
+    await fs.mkdir(target, { recursive: true });
+    await fs.writeFile(path.join(target, 'index.html'), documentFor(opts), 'utf8');
+    written.push(dir === '' ? 'index.html' : `${dir}/index.html`);
+  };
 
-  // 4. 每篇文章一个目录 + index.html（GitHub Pages 天然支持 /post/x/ 这种干净 URL）
+  // 3. 首页（项目集）
+  await writePage('', {
+    title: site.name,
+    description: site.description,
+    canonical: absoluteUrl('/'),
+    cssHref,
+    bodyHtml: renderToStaticMarkup(Home({ projects: projectMetas, posts: postMetas })),
+    ogType: 'website',
+  });
+
+  // 4. 项目列表 + 每个项目详情
+  await writePage('projects', {
+    title: '项目',
+    description: '我做过的项目：要解决什么问题、关键判断是什么、结果怎么验证。',
+    canonical: absoluteUrl('/projects/'),
+    cssHref,
+    bodyHtml: renderToStaticMarkup(ProjectsIndex({ projects: projectMetas })),
+    ogType: 'website',
+  });
+
+  for (const project of projects) {
+    await writePage(path.join('projects', project.slug), {
+      title: project.title,
+      description: project.tagline || site.description,
+      canonical: absoluteUrl(`/projects/${project.slug}/`),
+      cssHref,
+      bodyHtml: renderToStaticMarkup(ProjectPage({ project })),
+      ogType: 'article',
+    });
+  }
+
+  // 5. 文章列表 + 每篇文章详情
+  await writePage('writing', {
+    title: '文章',
+    description: '关于工程判断、取舍和踩坑的记录。',
+    canonical: absoluteUrl('/writing/'),
+    cssHref,
+    bodyHtml: renderToStaticMarkup(WritingIndex({ posts: postMetas })),
+    ogType: 'website',
+  });
+
   for (const post of posts) {
-    const dir = path.join(distDir, 'post', post.slug);
-    await fs.mkdir(dir, { recursive: true });
     const extraHead = `<meta property="article:published_time" content="${escapeHtml(post.date)}">
 <script type="application/ld+json">${JSON.stringify({
       '@context': 'https://schema.org',
@@ -240,23 +316,28 @@ async function main() {
       mainEntityOfPage: absoluteUrl(`/post/${post.slug}/`),
     })}</script>
 `;
-    await fs.writeFile(
-      path.join(dir, 'index.html'),
-      documentFor({
-        title: post.title,
-        description: post.summary || site.description,
-        canonical: absoluteUrl(`/post/${post.slug}/`),
-        cssHref,
-        bodyHtml: renderToStaticMarkup(PostPage({ post })),
-        ogType: 'article',
-        extraHead,
-      }),
-      'utf8',
-    );
-    written.push(`post/${post.slug}/index.html`);
+    await writePage(path.join('post', post.slug), {
+      title: post.title,
+      description: post.summary || site.description,
+      canonical: absoluteUrl(`/post/${post.slug}/`),
+      cssHref,
+      bodyHtml: renderToStaticMarkup(PostPage({ post })),
+      ogType: 'article',
+      extraHead,
+    });
   }
 
-  // 5. 404（GitHub Pages 会自动用根目录的 404.html）
+  // 6. 关于
+  await writePage('about', {
+    title: '关于',
+    description: `${site.author}：怎么做事、技术栈、项目时间线。`,
+    canonical: absoluteUrl('/about/'),
+    cssHref,
+    bodyHtml: renderToStaticMarkup(About({ projects: projectMetas })),
+    ogType: 'website',
+  });
+
+  // 7. 404（GitHub Pages 会自动用根目录的 404.html）
   await fs.writeFile(
     path.join(distDir, '404.html'),
     documentFor({
@@ -271,7 +352,7 @@ async function main() {
   );
   written.push('404.html');
 
-  // 6. RSS —— 博客的订阅入口，别省
+  // 8. RSS —— 订阅入口，别省
   const rss = `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
 <channel>
@@ -297,14 +378,22 @@ ${posts
   await fs.writeFile(path.join(distDir, 'rss.xml'), rss, 'utf8');
   written.push('rss.xml');
 
-  // 7. sitemap / robots
+  // 9. sitemap / robots
+  const urls = [
+    { loc: absoluteUrl('/'), lastmod: undefined as string | undefined },
+    { loc: absoluteUrl('/projects/'), lastmod: undefined },
+    ...projects.map((p) => ({ loc: absoluteUrl(`/projects/${p.slug}/`), lastmod: undefined })),
+    { loc: absoluteUrl('/writing/'), lastmod: undefined },
+    ...posts.map((p) => ({ loc: absoluteUrl(`/post/${p.slug}/`), lastmod: p.date })),
+    { loc: absoluteUrl('/about/'), lastmod: undefined },
+  ];
   const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-<url><loc>${escapeXml(absoluteUrl('/'))}</loc></url>
-${posts
-  .map(
-    (p) =>
-      `<url><loc>${escapeXml(absoluteUrl(`/post/${p.slug}/`))}</loc><lastmod>${p.date}</lastmod></url>`,
+${urls
+  .map((u) =>
+    u.lastmod
+      ? `<url><loc>${escapeXml(u.loc)}</loc><lastmod>${u.lastmod}</lastmod></url>`
+      : `<url><loc>${escapeXml(u.loc)}</loc></url>`,
   )
   .join('\n')}
 </urlset>
@@ -319,11 +408,12 @@ ${posts
 
   await highlighter.dispose();
 
-  console.log(`静态站点已生成（${posts.length} 篇文章，CSS ${cssFile}）`);
+  console.log(
+    `静态站点已生成（${projects.length} 个项目 · ${posts.length} 篇文章 · CSS ${cssFile}）`,
+  );
   for (const f of written) console.log(`  dist/${f}`);
-  if (posts.length === 0) {
-    console.log('  提示：content/posts 里还没有 .md，首页会是空的。');
-  }
+  if (posts.length === 0) console.log('  提示：content/posts 里还没有 .md。');
+  if (projects.length === 0) console.log('  提示：content/projects 里还没有 .md。');
 }
 
 main().catch((error) => {

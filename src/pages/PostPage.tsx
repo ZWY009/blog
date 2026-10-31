@@ -1,5 +1,5 @@
 import { formatDate, type Post } from '../lib/posts';
-import { SiteFooter, SiteHeader } from './parts';
+import { SiteFooter, SiteNav } from './parts';
 
 type Props = { post: Post };
 
@@ -7,14 +7,14 @@ type Props = { post: Post };
 export function PostPage({ post }: Props) {
   return (
     <div className="mx-auto w-full max-w-[46rem] px-6">
-      <SiteHeader />
+      <SiteNav current="writing" />
       <main>
         <article className="py-12">
           <a
-            href="/"
+            href="/writing/"
             className="mb-8 inline-block font-sans text-[13px] text-ink-3 hover:text-accent-ink"
           >
-            ← 返回列表
+            ← 返回文章列表
           </a>
 
           <h1 className="font-serif text-[28px] font-semibold leading-[1.35] tracking-tight text-ink sm:text-[34px]">
@@ -37,7 +37,7 @@ export function PostPage({ post }: Props) {
 
           <footer className="mt-14 border-t border-rule pt-8 font-sans text-[13px] text-ink-3">
             写于 {formatDate(post.date)} ·{' '}
-            <a href="/" className="text-accent-ink underline decoration-rule-strong">
+            <a href="/writing/" className="text-accent-ink underline decoration-rule-strong">
               回到全部文章
             </a>
           </footer>
@@ -48,19 +48,24 @@ export function PostPage({ post }: Props) {
   );
 }
 
-/** 404 / 找不到文章 */
+/** 404 / 找不到页面 */
 export function NotFound() {
   return (
     <div className="mx-auto w-full max-w-[46rem] px-6">
-      <SiteHeader />
+      <SiteNav />
       <main className="py-20">
         <h1 className="font-serif text-2xl font-semibold text-ink">找不到这一页</h1>
         <p className="mt-3 font-serif text-[15px] text-ink-2">
-          链接可能失效了，或者这篇文章还没写。
+          链接可能失效了，或者这个页面还没写。
         </p>
-        <a href="/" className="mt-6 inline-block font-sans text-[13px] text-accent-ink underline">
-          回到首页
-        </a>
+        <p className="mt-6 flex gap-5 font-sans text-[13px]">
+          <a href="/" className="text-accent-ink underline">
+            回到首页
+          </a>
+          <a href="/projects/" className="text-accent-ink underline">
+            看项目
+          </a>
+        </p>
       </main>
       <SiteFooter />
     </div>

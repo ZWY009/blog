@@ -9,8 +9,28 @@ export type PostMeta = {
   readingMinutes: number;
 };
 
-/** 完整文章（正文已渲染成 HTML 字符串，构建期产出） */
+/** 完整文章（正文已渲染成 HTML，构建期产出） */
 export type Post = PostMeta & { html: string };
+
+/** 项目条目 */
+export type ProjectMeta = {
+  slug: string;
+  title: string;
+  /** 一句话定位，首页卡片和详情页都用它 */
+  tagline: string;
+  period: string;
+  role: string;
+  stack: string[];
+  /** 排序，小的在前 */
+  order: number;
+  /** 最想让人记住的那一句，详情页做高亮块 */
+  highlight: string;
+  /** 可验证的结果，别写形容词 */
+  highlights: string[];
+  links: { repo?: string; demo?: string };
+};
+
+export type Project = ProjectMeta & { html: string };
 
 /** 2026-10-20 → 2026 年 10 月 20 日 */
 export function formatDate(iso: string): string {

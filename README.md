@@ -1,6 +1,40 @@
 # 秋蝉源
 
-个人博客。React + Vite + Tailwind 构建，**构建期静态生成**，可直接部署到 GitHub Pages。
+面试用的个人项目集 + 技术博客。React + Vite + Tailwind 构建，**构建期静态生成**，部署在 GitHub Pages。
+
+线上地址：https://zwy009.github.io/blog/
+
+## 加一个项目（这是主要用途）
+
+在 `content/projects/` 下新建 `.md`，文件名就是 URL：
+
+```
+content/projects/my-project.md   →   /projects/my-project/
+```
+
+frontmatter：
+
+```yaml
+---
+title: 项目名
+tagline: 一句话说清它做什么（首页和详情页都用）
+period: '2026-10' # 建议加引号，否则 YAML 会把 2026-10 解析成日期
+role: 独立设计与实现
+order: 1 # 越小越靠前
+stack: [TypeScript, React] # 技术栈小标签
+highlight: 最想让人记住的那一句（详情页高亮块）
+highlights: # 可验证的结果，别写形容词
+  - 门禁自测 17/17 用例通过
+  - 文章页 0 个 script 标签
+links:
+  repo: https://github.com/...
+  demo: https://... # 没有就省略
+---
+```
+
+正文用 `## 要解决的问题` / `## 我的做法` 这类小节写。**写完刷新即可，索引、排序、SEO 全自动。**
+
+> ⚠️ **中文加粗的坑**：`**「引号开头的句子」**` 不会渲染成粗体，因为 CommonMark 认为 `**` 后面紧跟标点时不构成定界符。要加粗就把引号放到粗体外面，或者让 `**` 前后接字母。
 
 ## 写文章
 
@@ -25,6 +59,19 @@ draft: false # 可选，true 则不上线
 正文就是普通 Markdown。代码块会自动高亮（支持 ts / tsx / js / jsx / css / html / bash / json / diff / text）。
 
 **只有写 `.md` 这一件事需要你做**，其余全是自动的：列表排序、年度分组、阅读时长、RSS、sitemap、SEO 标签、JSON-LD 结构化数据。
+
+## 站内链接必须用 `link()`
+
+组件里**不要手写** `href="/projects/"`。站点部署在 `/blog` 子路径下，手写的绝对路径会解析到
+站点根目录，点一下就 404。统一用：
+
+```tsx
+import { link } from '../site.config';
+
+<a href={link('/projects/')}>项目</a>;
+```
+
+`link()` 会自动拼上 `basePath`，本地和线上都对。
 
 ## 本地预览
 

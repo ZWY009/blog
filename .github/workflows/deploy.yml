@@ -1,0 +1,61 @@
+name: 部署博客
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# deploy-pages 需要的权限，缺一个都会失败
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# 同一时间只跑一个部署，避免两次推送互相覆盖
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # 版本必须和生成 pnpm-lock.yaml 的本地版本一致，否则 --frozen-lockfile 会失败
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 12
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: 安装依赖
+        run: pnpm install --frozen-lockfile
+
+      # BASE_PATH 必须和实际访问路径一致，否则 CSS 和文章链接全 404。
+      # 项目页（<user>.github.io/<repo>）是 '/<repo>'；
+      # 如果仓库改名为 <user>.github.io（用户页），这里必须改成空字符串。
+      - name: 构建静态站点
+        env:
+          BLOG_BASE_PATH: /${{ github.event.repository.name }}
+          BLOG_SITE_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}
+        run: pnpm build
+
+      - name: 上传站点产物
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
